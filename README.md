@@ -31,4 +31,4 @@
 
 ## Просто тест
 
-'sudo apt install'
+`sudo apt get install`
