@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import os
 plt.style.use("dark_background")
 
-from tensorflow.keras.layers import Input, Multiply, Dense, Activation, Conv2D, UpSampling2D, MaxPool2D, GlobalAveragePooling2D, Concatenate, Dense, BatchNormalization, Flatten
+from tensorflow.keras.layers import Input, Multiply, Dense, Activation, Conv2D, UpSampling2D, AvgPool2D, GlobalAveragePooling2D, Concatenate, Dense, BatchNormalization, Flatten
 from tensorflow.keras import Model, Sequential
 from tensorflow.keras.metrics import Mean
 from tensorflow import Module, GradientTape
@@ -15,34 +15,46 @@ from tensorflow.keras.callbacks import Callback
 
 class BottleNeck2D(Module):
 
-    def __init__(self, filters, kernel_size=2, l_n=3):
+    def __init__(self, filters, kernel_size=2, activation="relu"):
 
-        conv = Conv2D(filters=filters, kernel_size=kernel_size, strides=1, padding="same")
-        conv1 = Conv2D(filters=filters, kernel_size=kernel_size, strides=1, padding="same")
-        conv2 = Conv2D(filters=filters, kernel_size=kernel_size, strides=1, padding="same")
+        conv = Conv2D(
+            filters=filters, 
+            kernel_size=kernel_size, 
+            strides=1, 
+            padding="same", 
+            activation=activation
+        )
         con = Concatenate()
 
-        self.layers = [conv, conv1, conv2, con]
+        self.layers = [
+            conv, 
+            con
+        ]
     
     def __call__(self, input):
 
         x = input
-        for layer in self.layers[:-1]:
-            x = layer(x)
-        
-        x = self.layers[-1]([input, x])
+        x = self.layers[0](x)
+        x = self.layers[1]([input, x])
+
         return x
+    
 
 class SeMap2D(Module):
 
     def __init__(self, ch, ratio=16):
 
         gap = GlobalAveragePooling2D()
-        se_map = Dense(units=(ch // ratio), activation="relu")
-        linear_gate = Dense(units=ch, activation="softmax")
+        se_map = Dense(units=(ch // ratio), activation="linear")
+        tanh_gate = Dense(units=ch, activation="softmax")
         out = Multiply()
 
-        self.layers = [gap, se_map, linear_gate, out]
+        self.layers = [
+            gap, 
+            se_map, 
+            tanh_gate, 
+            out
+        ]
     
     def __call__(self, input):
 
@@ -57,12 +69,17 @@ class DownSample(Module):
 
     def __init__(self, filters, kernel_size, activation="silu"):
 
-        conv = Conv2D(filters=filters, kernel_size=kernel_size, strides=1, padding="same")
+        conv = Conv2D(filters=filters, kernel_size=kernel_size, strides=2, padding="same")
         norm = BatchNormalization()
-        pool = MaxPool2D(pool_size=2)
+        #pool = AvgPool2D(pool_size=2)
         acti = Activation(activation)
 
-        self.layers = [conv, norm, pool, acti] 
+        self.layers = [
+            conv, 
+            norm, 
+            #pool, 
+            acti
+        ] 
 
     def __call__(self, input):
 
@@ -75,14 +92,19 @@ class DownSample(Module):
 
 class UpSample(Module):
 
-    def __init__(self, filters, kernel_size, activation="silu"):
+    def __init__(self, filters, kernel_size, activation="sigmoid"):
 
         conv = Conv2D(filters=filters, kernel_size=kernel_size, strides=1, padding="same")
         norm = BatchNormalization()
-        up = UpSampling2D()
+        up = UpSampling2D(size=2)
         acti = Activation(activation)
 
-        self.layers = [conv, norm, up, acti]
+        self.layers = [
+            conv,
+            norm, 
+            up, 
+            acti
+        ]
     
     def __call__(self, input):
 
@@ -173,7 +195,12 @@ class AeModelCallback(Callback):
                              :] = gen[sn]
                 sn += 1
         
-        fig.savefig(fname=os.path.join(self.run_folder, f"gen_sample{self.sample_n}.png"))
+        axis.imshow(show_pipline)
+        gen_path = os.path.join(self.run_folder, "generated_samples")
+        if not os.path.exists(gen_path):
+            os.mkdir(gen_path)
+
+        fig.savefig(fname=os.path.join(gen_path, f"gen_sample{self.sample_n}.png"))
         self.sample_n += 1
 
 
@@ -198,15 +225,15 @@ class AeVersion1(Model):
 
         input_layer = Input(shape=self.input_sh)
 
-        en_layer = Encoding2D(filters=128, kernel_size=3, activation="tanh")(input_layer)
-        en_layer = Encoding2D(filters=64, kernel_size=3, activation="tanh")(en_layer)
-        en_layer = Encoding2D(filters=32, kernel_size=3, activation="tanh")(en_layer)
+        en_layer = Encoding2D(filters=128, kernel_size=3, activation="linear")(input_layer)
+        en_layer = Encoding2D(filters=64, kernel_size=3, activation="linear")(en_layer)
+        en_layer = Encoding2D(filters=32, kernel_size=3, activation="linear")(en_layer)
 
-        dec_layer = Decoding2D(filters=128, kernel_size=3, activation="tanh")(en_layer)
-        dec_layer = Decoding2D(filters=64, kernel_size=3, activation="tanh")(dec_layer)
-        dec_layer = Decoding2D(filters=32, kernel_size=3, activation="tanh")(dec_layer)
+        dec_layer = Decoding2D(filters=128, kernel_size=3, activation="linear")(en_layer)
+        dec_layer = Decoding2D(filters=64, kernel_size=3, activation="linear")(dec_layer)
+        dec_layer = Decoding2D(filters=32, kernel_size=3, activation="linear")(dec_layer)
 
-        out = Conv2D(filters=self.input_sh[-1], kernel_size=1, strides=1, activation="relu")(dec_layer)
+        out = Conv2D(filters=self.input_sh[-1], kernel_size=1, strides=1, activation="linear")(dec_layer)
         return Model(inputs=input_layer, outputs=out)
     
     @property

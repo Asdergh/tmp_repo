@@ -1,5 +1,5 @@
 {
     "train_data_source": "C:\\Users\\1\\Downloads\\denoising-dirty-documents\\train\\train",
     "test_data_source": "C:\\Users\\1\\Downloads\\denoising-dirty-documents\\test\\test",
-    "model_version": "1.0"
+    "model_version": "0.0"
 }

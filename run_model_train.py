@@ -31,6 +31,7 @@ for train_part in training_confs.keys():
             image = cv2.imread(os.path.join(samples_ph, sample_ph))
             image = cv2.resize(image, (128, 128))
             image = image / 255.0
+            image = (image - np.mean(image)) / np.std(image)
 
             samples.append(image)
 
@@ -39,15 +40,32 @@ for train_part in training_confs.keys():
     
 
 
-model = MODELS[training_confs["model_version"]](input_sh=(128, 128, 3))
-callback = AeModelCallback(data=gen_data["train_data_source"], model=model, input_sh=(128, 128, 3), run_folder="model_saves")
-model.compile(optimizer=Adam(learning_rate=0.1), loss_fn=MeanSquaredError())
-model.fit(gen_data["train_data_source"], 
-          gen_data["train_data_source"], 
-          epochs=100, 
-          batch_size=32, 
-          callbacks=[callback])
+model = MODELS[training_confs["model_version"]](filepath="C:\\Users\\1\\Desktop\\tmp_model\\model_confs.json")
+callback = AeModelCallback(data=gen_data["train_data_source"], 
+                           model=model, input_sh=(128, 128, 3), 
+                           run_folder="C:\\Users\\1\\Desktop\\tmp_model\\model_version_1_0")
+# model.compile(optimizer=Adam(learning_rate=0.1), loss_fn=MeanSquaredError())
+# print(model.model.summary())
+# model.fit(gen_data["train_data_source"], 
+#           gen_data["train_data_source"], 
+#           epochs=100, 
+#           batch_size=32)
 
+
+run_folder = "C:\\Users\\1\\Desktop\\tmp_model\\model_saves"
+train_tensor = gen_data["train_data_source"]
+train_labels = gen_data["train_data_source"]
+epochs = 100
+batch_size = 32
+epoch_per_save=10
+
+model.train(run_folder,
+        train_tensor,
+        train_labels,
+        epochs,
+        batch_size,
+        epoch_per_save,
+        gen_encoded_sample=False,)
 
 
     
