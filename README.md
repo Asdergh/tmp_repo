@@ -31,4 +31,9 @@
 
 ## Просто тест
 
-`sudo apt get install`
+```
+cd ~/catkin_ws/
+source devel/setup.bash
+roslaunch px4 mavlink_posix_launch.launch
+
+```
