@@ -123,7 +123,6 @@ class Encoding2D(Module):
         #se_map = SeMap2D(ch=filters, ratio=16)
 
         self.layers = [
-            bottle_neck, 
             down_sample
             ]
     
@@ -143,8 +142,7 @@ class Decoding2D(Module):
         up_sample = UpSample(filters=filters, kernel_size=kernel_size, activation=activation)
         #se_map = SeMap2D(ch=filters, ratio=16)
 
-        self.layers = [
-            bottle_neck, 
+        self.layers = [ 
             up_sample
             ]
     
@@ -169,9 +167,13 @@ class AeModelCallback(Callback):
         self.input_sh = input_sh
         self.data = data
         self.sp_save = sp_save
+
         self.run_folder = run_folder
+        if not os.path.exists(self.run_folder):
+            os.mkdir(self.run_folder)
+
         self.sample_n = 0
-    
+
     def on_epoch_end(self, epoch, logs=None):
 
         rd_idx = np.random.randint(0, self.data.shape[0], self.sp_save)
@@ -209,7 +211,7 @@ class AeModelCallback(Callback):
         weigths_path = os.path.join(self.run_folder, "model.weights.h5")
         model_path = os.path.join(self.run_folder, "model.keras")
 
-        self.mode_genl.save_weights(weigths_path)
+        self.model_gen.save_weights(weigths_path)
         self.model_gen.save(model_path)
 
         

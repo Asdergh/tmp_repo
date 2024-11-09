@@ -12,10 +12,20 @@ from tensorflow.keras.optimizers import Adam
 
 
 MODELS = {
-    "0.0": VarEncoder,
-    "1.0": AeVersion1
+    "0.0": {
+        "model": VarEncoder,
+        "epochs": 100,
+        "batch_size": 32,
+        "epoch_per_save": 10,
+        "params_path": "C:\\Users\\1\\Desktop\\tmp_model\\model_confs.json"
+    },
+
+    "1.0": {
+        "model": AeVersion1,
+        "epochs": 10,
+        "batch_size": 32
+    }
 }
-generator = ImageDataGenerator()
 with open("trainer_confs.json", "r") as json_f:
     training_confs = js.load(json_f)
 
@@ -23,7 +33,7 @@ with open("trainer_confs.json", "r") as json_f:
 gen_data = {}
 for train_part in training_confs.keys():
     
-    if train_part != "model_version":
+    if train_part not in ["model_version", "pretrained"]:
         samples = []
         samples_ph = training_confs[train_part]
         for sample_ph in os.listdir(samples_ph):
@@ -40,32 +50,43 @@ for train_part in training_confs.keys():
     
 
 
-model = MODELS[training_confs["model_version"]](filepath="C:\\Users\\1\\Desktop\\tmp_model\\model_confs.json")
-callback = AeModelCallback(data=gen_data["train_data_source"], 
+
+epochs = MODELS[training_confs["model_version"]]["epochs"]
+batch_size = MODELS[training_confs["model_version"]]["batch_size"]
+
+if training_confs["model_version"] == "1.0":        
+
+    model = MODELS[training_confs["model_version"]]["model"](input_sh=(128, 128, 3))
+    if training_confs["pretrained"]:
+        model.model.load_weights("C:\\Users\\1\\Desktop\\tmp_model\\model_version_1_0\\model.weights.h5")
+
+    callback = AeModelCallback(data=gen_data["train_data_source"], 
                            model=model, input_sh=(128, 128, 3), 
                            run_folder="C:\\Users\\1\\Desktop\\tmp_model\\model_version_1_0")
-# model.compile(optimizer=Adam(learning_rate=0.1), loss_fn=MeanSquaredError())
-# print(model.model.summary())
-# model.fit(gen_data["train_data_source"], 
-#           gen_data["train_data_source"], 
-#           epochs=100, 
-#           batch_size=32)
+    
+    model.compile(optimizer=Adam(learning_rate=0.01), loss_fn=MeanSquaredError())
+    model.fit(gen_data["train_data_source"], 
+            gen_data["train_data_source"], 
+            epochs=epochs, 
+            batch_size=batch_size,
+            callbacks=[callback])
 
+elif training_confs["model_version"] == "0.0":
 
-run_folder = "C:\\Users\\1\\Desktop\\tmp_model\\model_saves"
-train_tensor = gen_data["train_data_source"]
-train_labels = gen_data["train_data_source"]
-epochs = 100
-batch_size = 32
-epoch_per_save=10
+    params_path = MODELS[training_confs["model_version"]]["params_path"]
+    epochs_per_save = MODELS[training_confs["model_version"]]["epoch_per_save"]
 
-model.train(run_folder,
-        train_tensor,
-        train_labels,
-        epochs,
-        batch_size,
-        epoch_per_save,
-        gen_encoded_sample=False,)
+    model = MODELS[training_confs["model_version"]]["model"](filepath=params_path)
+    if training_confs["pretrained"]:
+        model.load_weights(filepath="C:\\Users\\1\\Desktop\\tmp_model\\model_saves\\entire_model_weights.weights.h5")
+
+    model.train(run_folder="C:\\Users\\1\\Desktop\\tmp_model\\model_saves",
+            train_tensor=gen_data["train_data_source"],
+            train_labels=gen_data["train_data_source"],
+            epochs=epochs,
+            batch_size=batch_size,
+            epoch_per_save=epochs_per_save,
+            gen_encoded_sample=False)
 
 
     
