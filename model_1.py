@@ -45,7 +45,7 @@ class SeMap2D(Module):
     def __init__(self, ch, ratio=16):
 
         gap = GlobalAveragePooling2D()
-        se_map = Dense(units=(ch // ratio), activation="linear")
+        se_map = Dense(units=(ch // ratio), activation="relu")
         tanh_gate = Dense(units=ch, activation="softmax")
         out = Multiply()
 
@@ -120,10 +120,11 @@ class Encoding2D(Module):
 
         bottle_neck = BottleNeck2D(filters=filters, kernel_size=kernel_size)
         down_sample = DownSample(filters=filters, kernel_size=kernel_size, activation=activation)
-        #se_map = SeMap2D(ch=filters, ratio=16)
+        se_map = SeMap2D(ch=filters, ratio=16)
 
         self.layers = [
-            down_sample
+            down_sample,
+            se_map
             ]
     
     def __call__(self, inputs):
@@ -140,10 +141,11 @@ class Decoding2D(Module):
 
         bottle_neck = BottleNeck2D(filters=filters, kernel_size=kernel_size)
         up_sample = UpSample(filters=filters, kernel_size=kernel_size, activation=activation)
-        #se_map = SeMap2D(ch=filters, ratio=16)
+        se_map = SeMap2D(ch=filters, ratio=16)
 
         self.layers = [ 
-            up_sample
+            up_sample,
+            se_map
             ]
     
     def __call__(self, inputs):
@@ -212,7 +214,6 @@ class AeModelCallback(Callback):
         model_path = os.path.join(self.run_folder, "model.keras")
 
         self.model_gen.save_weights(weigths_path)
-        self.model_gen.save(model_path)
 
         
 class AeVersion1(Model):

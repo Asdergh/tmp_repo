@@ -22,7 +22,7 @@ MODELS = {
 
     "1.0": {
         "model": AeVersion1,
-        "epochs": 10,
+        "epochs": 100,
         "batch_size": 32
     }
 }
@@ -57,8 +57,8 @@ batch_size = MODELS[training_confs["model_version"]]["batch_size"]
 if training_confs["model_version"] == "1.0":        
 
     model = MODELS[training_confs["model_version"]]["model"](input_sh=(128, 128, 3))
-    if training_confs["pretrained"]:
-        model.model.load_weights("C:\\Users\\1\\Desktop\\tmp_model\\model_version_1_0\\model.weights.h5")
+    if training_confs["pretrained"] == "true":
+        model.load_weights("C:\\Users\\1\\Desktop\\tmp_model\\model_version_1_0\\model.weights.h5")
 
     callback = AeModelCallback(data=gen_data["train_data_source"], 
                            model=model, input_sh=(128, 128, 3), 
